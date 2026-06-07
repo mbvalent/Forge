@@ -215,7 +215,7 @@ Token budget: ~30-40K tokens per request with 90 days of data. Well within Gemin
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=     # server-only
+SUPABASE_SECRET_KEY=     # server-only
 GOOGLE_GENERATIVE_AI_API_KEY=
 APP_PASSWORD=
 SESSION_SECRET=                # random 32 chars, signs the auth cookie

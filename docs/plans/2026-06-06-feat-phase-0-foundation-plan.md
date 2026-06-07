@@ -83,7 +83,7 @@ APP_PASSWORD=...
 
 # Add these:
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=...
+SUPABASE_SECRET_KEY=...
 SESSION_SECRET=<random 32-char string>   # openssl rand -base64 32
 ```
 
@@ -261,7 +261,7 @@ import { createClient } from '@supabase/supabase-js'
 export function createServiceClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.SUPABASE_SECRET_KEY!,
     {
       auth: {
         persistSession: false,
@@ -701,7 +701,7 @@ Or just check counts in the Supabase dashboard table viewer.
 3. Framework preset: Next.js (auto-detected)
 4. Add all 5 env vars in Vercel project settings:
    - `NEXT_PUBLIC_SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `SUPABASE_SECRET_KEY`
    - `GOOGLE_GENERATIVE_AI_API_KEY`
    - `APP_PASSWORD`
    - `SESSION_SECRET`
@@ -791,7 +791,7 @@ POST /api/login
 Server action (any mutation in Phase 1+)
   → imports createServiceClient() from lib/supabase.ts
     → 'server-only' guard prevents client import
-    → uses SUPABASE_SERVICE_ROLE_KEY (bypasses RLS)
+    → uses SUPABASE_SECRET_KEY (bypasses RLS)
 ```
 
 ### Error & Failure Propagation
@@ -799,7 +799,7 @@ Server action (any mutation in Phase 1+)
 | Failure | Behavior |
 |---|---|
 | `SESSION_SECRET` missing in prod | `jwtVerify` throws → middleware catches → redirect loop to /login |
-| `SUPABASE_SERVICE_ROLE_KEY` missing | `createServiceClient()` succeeds, but queries return 401 errors |
+| `SUPABASE_SECRET_KEY` missing | `createServiceClient()` succeeds, but queries return 401 errors |
 | Supabase paused (7-day idle) | All DB queries return errors — resume from dashboard |
 | `GOOGLE_GENERATIVE_AI_API_KEY` invalid | Seed scripts fail with Gemini auth error — does not affect runtime app |
 

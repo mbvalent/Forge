@@ -29,3 +29,5 @@ npm-debug.log*
 .agents/
 .claude/
 skills-lock.json
+# next-agents-md
+.next-docs/

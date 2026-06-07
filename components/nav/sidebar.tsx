@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
@@ -30,10 +31,8 @@ export function Sidebar({ className }: { className?: string }) {
         className,
       )}
     >
-      <div className="px-4 pb-6">
-        <span className="font-heading text-xl font-bold tracking-tight text-foreground">
-          Forge
-        </span>
+      <div className="px-4 pb-6 flex items-center">
+        <Image src="/logo.png" alt="Forge Logo" width={200} height={200} className="h-auto w-auto object-contain" priority />
       </div>
       <nav className="flex flex-col gap-1 px-2">
         {tabs.map(({ href, label, icon }) => {
