@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Oxanium, Noto_Serif } from 'next/font/google'
+import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
 const oxanium = Oxanium({
@@ -34,6 +35,7 @@ export default function RootLayout({
         className={`${oxanium.variable} ${notoSerif.variable} font-sans bg-background text-foreground antialiased`}
       >
         {children}
+        <Toaster />
       </body>
     </html>
   )
