@@ -10,8 +10,11 @@ import {
   Dumbbell01Icon,
   ChatBotIcon,
   More01Icon,
+  Logout01Icon,
 } from '@hugeicons/core-free-icons'
 import { cn } from '@/lib/utils'
+import { logout } from '@/lib/actions/logout'
+import { Button } from '@/components/ui/button'
 
 const tabs = [
   { href: '/', label: 'Today', icon: Home01Icon },
@@ -58,6 +61,18 @@ export function Sidebar({ className }: { className?: string }) {
           )
         })}
       </nav>
+      <div className="mt-auto px-2 pb-4">
+        <form action={logout}>
+          <Button
+            type="submit"
+            variant="ghost"
+            className="w-full justify-start gap-3 px-3 text-sm font-medium text-muted-foreground/60 hover:text-accent-foreground min-h-[44px]"
+          >
+            <HugeiconsIcon icon={Logout01Icon} size={20} strokeWidth={1.5} />
+            Log out
+          </Button>
+        </form>
+      </div>
     </aside>
   )
 }

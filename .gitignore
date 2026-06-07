@@ -22,6 +22,9 @@ build/
 *.tsbuildinfo
 next-env.d.ts
 
+# passkey credential (device-specific, back up to 1Password)
+data/
+
 # misc
 .DS_Store
 *.pem

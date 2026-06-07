@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Image from 'next/image'
+import PasskeyButtons from '@/components/passkey-buttons'
 
 interface Props {
   searchParams: Promise<{ error?: string }>
@@ -55,14 +56,15 @@ export default async function LoginPage({ searchParams }: Props) {
                 </p>
               )}
             </div>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               size="lg"
               className="w-full h-14 text-lg font-bold tracking-wider hover:scale-[1.02] transition-transform duration-300 shadow-[0_0_20px_color-mix(in_oklch,var(--primary)_30%,transparent)] hover:shadow-[0_0_25px_color-mix(in_oklch,var(--primary)_50%,transparent)]"
             >
               ENTER
             </Button>
           </form>
+          <PasskeyButtons />
         </CardContent>
       </Card>
     </div>
