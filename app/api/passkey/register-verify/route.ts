@@ -39,9 +39,14 @@ export async function POST(request: NextRequest) {
 
     cookieStore.delete('passkey-challenge')
 
+    // Return all values needed for Vercel env vars (credential data is not secret)
     return NextResponse.json({
       verified: true,
-      credentialID: credential.id,
+      envVars: {
+        PASSKEY_CREDENTIAL_ID: credential.id,
+        PASSKEY_PUBLIC_KEY: isoBase64URL.fromBuffer(credential.publicKey),
+        PASSKEY_RP_ID: rpID,
+      },
     })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 400 })

@@ -6,18 +6,25 @@ import { Button } from '@/components/ui/button'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { FingerPrintScanIcon } from '@hugeicons/core-free-icons'
 
-type Status = { type: 'error' | 'success'; message: string } | null
+type EnvVars = {
+  PASSKEY_CREDENTIAL_ID: string
+  PASSKEY_PUBLIC_KEY: string
+  PASSKEY_RP_ID: string
+}
+
+type Status = { type: 'error'; message: string } | { type: 'success'; message: string } | null
 
 export default function PasskeyButtons() {
   const [loading, setLoading] = useState<'auth' | 'register' | null>(null)
   const [status, setStatus] = useState<Status>(null)
+  const [envVars, setEnvVars] = useState<EnvVars | null>(null)
 
   async function handleAuth() {
     setLoading('auth')
     setStatus(null)
     try {
       const optRes = await fetch('/api/passkey/auth-options')
-      if (optRes.status === 404) throw new Error('No passkey registered on this device yet')
+      if (optRes.status === 404) throw new Error('No passkey registered — use the password to log in, then register this device')
       if (!optRes.ok) throw new Error('Failed to get authentication options')
       const optionsJSON = await optRes.json()
 
@@ -47,6 +54,7 @@ export default function PasskeyButtons() {
   async function handleRegister() {
     setLoading('register')
     setStatus(null)
+    setEnvVars(null)
     try {
       const optRes = await fetch('/api/passkey/register-options')
       if (!optRes.ok) throw new Error('Failed to get registration options')
@@ -62,10 +70,12 @@ export default function PasskeyButtons() {
       const data = await verifyRes.json()
       if (!verifyRes.ok) throw new Error(data.error ?? 'Registration failed')
 
-      setStatus({
-        type: 'success',
-        message: 'Device registered — you can now use biometric login.',
-      })
+      const isLocalhost = window.location.hostname === 'localhost'
+      if (isLocalhost) {
+        setStatus({ type: 'success', message: 'Device registered — you can now use biometric login.' })
+      } else {
+        setEnvVars(data.envVars)
+      }
     } catch (err) {
       setStatus({
         type: 'error',
@@ -108,13 +118,25 @@ export default function PasskeyButtons() {
       </Button>
 
       {status && (
-        <p
-          className={`text-sm text-center animate-in slide-in-from-top-1 ${
-            status.type === 'error' ? 'text-destructive' : 'text-green-500'
-          }`}
-        >
+        <p className={`text-sm text-center animate-in slide-in-from-top-1 ${status.type === 'error' ? 'text-destructive' : 'text-green-500'}`}>
           {status.message}
         </p>
+      )}
+
+      {envVars && (
+        <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2 animate-in slide-in-from-top-1">
+          <p className="text-xs font-semibold text-amber-400">
+            Device registered. Add these 3 env vars to Vercel, then redeploy:
+          </p>
+          {Object.entries(envVars).map(([key, value]) => (
+            <div key={key} className="space-y-0.5">
+              <p className="text-[10px] text-muted-foreground font-mono">{key}</p>
+              <p className="text-[10px] font-mono text-foreground/80 break-all bg-background/40 rounded px-2 py-1 select-all">
+                {value}
+              </p>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )

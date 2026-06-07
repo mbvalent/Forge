@@ -10,7 +10,11 @@ export type StoredCredential = {
   rpID: string
 }
 
-const PASSKEY_FILE = path.join(process.cwd(), 'data', 'passkey.json')
+// Vercel's /var/task is read-only; /tmp is writable but ephemeral — only used to survive the
+// registration request. For persistent auth, copy the values to Vercel env vars after registering.
+const PASSKEY_FILE = process.env.VERCEL
+  ? '/tmp/passkey.json'
+  : path.join(process.cwd(), 'data', 'passkey.json')
 
 export async function readCredential(): Promise<StoredCredential | null> {
   // Vercel production: set PASSKEY_CREDENTIAL_ID + PASSKEY_PUBLIC_KEY as env vars after local registration
@@ -34,8 +38,12 @@ export async function readCredential(): Promise<StoredCredential | null> {
 }
 
 export async function writeCredential(cred: StoredCredential): Promise<void> {
-  await mkdir(path.dirname(PASSKEY_FILE), { recursive: true })
-  await writeFile(PASSKEY_FILE, JSON.stringify(cred, null, 2), 'utf-8')
+  try {
+    await mkdir(path.dirname(PASSKEY_FILE), { recursive: true })
+    await writeFile(PASSKEY_FILE, JSON.stringify(cred, null, 2), 'utf-8')
+  } catch {
+    // Silently skip — on Vercel /tmp write can fail; caller always returns credential data directly
+  }
 }
 
 export async function updateCounter(newCounter: number): Promise<void> {
