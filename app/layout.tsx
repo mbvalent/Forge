@@ -4,19 +4,20 @@ import './globals.css'
 
 const oxanium = Oxanium({
   subsets: ['latin'],
-  variable: '--font-sans',
+  variable: '--font-oxanium',
   display: 'swap',
 })
 
 const notoSerif = Noto_Serif({
   subsets: ['latin'],
-  variable: '--font-heading',
+  variable: '--font-noto-serif',
   display: 'swap',
 })
 
 export const metadata: Metadata = {
   title: 'Forge',
   description: 'Personal fitness tracker',
+  icons: { apple: '/apple-touch-icon.png' },
 }
 
 export default function RootLayout({

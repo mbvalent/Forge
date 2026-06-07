@@ -3,11 +3,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { encrypt } from '@/lib/session'
 import { loginSchema } from '@/lib/schemas/auth'
 
+const APP_PASSWORD = process.env.APP_PASSWORD
+if (!APP_PASSWORD) throw new Error('APP_PASSWORD env var is not set')
+
 export async function POST(request: NextRequest) {
   const formData = await request.formData()
   const result = loginSchema.safeParse({ password: formData.get('password') })
 
-  if (!result.success || result.data.password !== process.env.APP_PASSWORD) {
+  if (!result.success || result.data.password !== APP_PASSWORD) {
     return NextResponse.redirect(new URL('/login?error=1', request.url))
   }
 

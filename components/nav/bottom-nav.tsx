@@ -26,7 +26,7 @@ export function BottomNav({ className }: { className?: string }) {
   return (
     <nav
       className={cn(
-        'fixed bottom-0 left-0 right-0 z-50 flex h-16 border-t border-border bg-background',
+        'fixed bottom-0 left-0 right-0 z-50 flex h-16 border-t border-border/30 bg-background/70 backdrop-blur-xl',
         className,
       )}
     >

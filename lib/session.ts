@@ -1,7 +1,9 @@
 import 'server-only'
 import { SignJWT, jwtVerify } from 'jose'
 
-const encodedKey = new TextEncoder().encode(process.env.SESSION_SECRET)
+const secret = process.env.SESSION_SECRET
+if (!secret) throw new Error('SESSION_SECRET env var is not set')
+const encodedKey = new TextEncoder().encode(secret)
 
 export async function encrypt(payload: { expiresAt: Date }): Promise<string> {
   return new SignJWT({ expiresAt: payload.expiresAt.toISOString() })

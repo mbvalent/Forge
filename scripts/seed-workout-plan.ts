@@ -12,7 +12,7 @@ const google = createGoogleGenerativeAI({ apiKey: process.env.GOOGLE_GENERATIVE_
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  process.env.SUPABASE_SECRET_KEY!,
   { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
 )
 
@@ -39,7 +39,7 @@ async function main() {
   console.log('Parsing workout plan via Gemini...')
 
   const { object } = await generateObject({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-3.1-flash-lite'),
     schema: WorkoutPlanSchema,
     prompt: `
 Parse this 5-day hypertrophy workout plan and extract structured data.

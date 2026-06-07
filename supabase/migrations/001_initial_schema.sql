@@ -1,7 +1,7 @@
 -- Workout tracking
 CREATE TABLE exercises (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name text NOT NULL,
+  name text NOT NULL UNIQUE,
   muscle_group text,
   default_rep_min int,
   default_rep_max int,
@@ -48,7 +48,7 @@ CREATE TABLE workout_sets (
 -- Diet tracking
 CREATE TABLE foods (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name text NOT NULL,
+  name text NOT NULL UNIQUE,
   calories_100g numeric NOT NULL,
   protein_100g numeric NOT NULL,
   carbs_100g numeric NOT NULL,

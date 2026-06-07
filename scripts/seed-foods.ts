@@ -12,7 +12,7 @@ const google = createGoogleGenerativeAI({ apiKey: process.env.GOOGLE_GENERATIVE_
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  process.env.SUPABASE_SECRET_KEY!,
   { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
 )
 
@@ -32,7 +32,7 @@ async function main() {
   console.log('Generating food list via Gemini...')
 
   const { object } = await generateObject({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-3.1-flash-lite'),
     schema: FoodSchema,
     prompt: `
 You are a nutritionist generating a food database for a fitness tracking app.
@@ -53,9 +53,12 @@ Return UNIQUE foods only (no duplicates). Be precise with nutritional data.
 
   console.log(`Generated ${object.foods.length} foods. Inserting into DB...`)
 
+  // Truncate first so re-runs are idempotent
+  await supabase.from('foods').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+
   const { error } = await supabase
     .from('foods')
-    .upsert(object.foods, { onConflict: 'name', ignoreDuplicates: false })
+    .insert(object.foods)
 
   if (error) {
     console.error('Insert error:', error)
