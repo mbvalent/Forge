@@ -1,9 +1,8 @@
 import { format } from 'date-fns'
 import { DietView } from '@/components/diet/diet-view'
+import { WorkoutSummaryCard } from '@/components/workout/workout-summary-card'
 
 export default async function TodayPage() {
-  // Use today's date in the server's local time
-  // Note: client passes their local date for mutations (D4); server uses it for initial render
   const today = format(new Date(), 'yyyy-MM-dd')
 
   return (
@@ -12,6 +11,8 @@ export default async function TodayPage() {
         <h1 className="font-heading text-2xl font-bold">Today</h1>
         <p className="text-sm text-muted-foreground">{format(new Date(), 'EEEE, MMMM d')}</p>
       </div>
+
+      <WorkoutSummaryCard date={today} />
 
       <DietView date={today} />
     </div>

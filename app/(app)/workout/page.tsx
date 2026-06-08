@@ -1,8 +1,54 @@
-export default function WorkoutPage() {
+import { format, isToday, parseISO } from 'date-fns'
+import { DateNav } from '@/components/nav/date-nav'
+import { WorkoutView } from '@/components/workout/workout-view'
+import { getWorkoutForDate, getWorkoutDays, getExercisesForDay } from '@/lib/workout/queries'
+
+interface WorkoutPageProps {
+  searchParams: Promise<{ date?: string }>
+}
+
+export default async function WorkoutPage({ searchParams }: WorkoutPageProps) {
+  const { date: dateParam } = await searchParams
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+
+  let date = todayStr
+  if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+    date = dateParam
+  }
+
+  const isPast = !isToday(parseISO(date))
+
+  const [workout, workoutDays] = await Promise.all([
+    getWorkoutForDate(date),
+    getWorkoutDays(),
+  ])
+
+  const readonly = isPast || !!workout?.completed_at
+
+  // Load exercises if workout has a day assigned
+  const exercises = workout?.workout_day_id
+    ? await getExercisesForDay(workout.workout_day_id, date)
+    : []
+
   return (
-    <div className="p-4">
+    <div className="p-4 space-y-4 max-w-2xl mx-auto">
       <h1 className="font-heading text-2xl font-bold">Workout</h1>
-      <p className="mt-2 text-muted-foreground">Workout logging — coming in Phase 2</p>
+
+      <DateNav date={date} todayStr={todayStr} basePath="/workout" />
+
+      {isPast && (
+        <p className="text-xs text-muted-foreground text-center">
+          Viewing past date — read only
+        </p>
+      )}
+
+      <WorkoutView
+        date={date}
+        workout={workout}
+        workoutDays={workoutDays}
+        exercises={exercises}
+        readonly={readonly}
+      />
     </div>
   )
 }

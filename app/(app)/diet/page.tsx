@@ -22,7 +22,7 @@ export default async function DietPage({ searchParams }: DietPageProps) {
     <div className="p-4 space-y-4 max-w-2xl mx-auto">
       <h1 className="font-heading text-2xl font-bold">Diet</h1>
 
-      <DateNav date={date} todayStr={todayStr} />
+      <DateNav date={date} todayStr={todayStr} basePath="/diet" />
 
       {isPast && (
         <p className="text-xs text-muted-foreground text-center">
