@@ -20,12 +20,21 @@ export async function createOrResumeWorkout(
   if (!parsed.success) return { success: false, error: 'Invalid input' }
 
   const supabase = createServiceClient()
+
+  // Check for existing workout first (avoids needing a DB unique constraint)
+  const { data: existing } = await supabase
+    .from('workouts')
+    .select('id')
+    .eq('date', parsed.data.date)
+    .maybeSingle()
+
+  if (existing) {
+    return { success: true, data: { workoutId: existing.id } }
+  }
+
   const { data, error } = await supabase
     .from('workouts')
-    .upsert(
-      { date: parsed.data.date, workout_day_id: parsed.data.workoutDayId },
-      { onConflict: 'date' }
-    )
+    .insert({ date: parsed.data.date, workout_day_id: parsed.data.workoutDayId })
     .select('id')
     .single()
 

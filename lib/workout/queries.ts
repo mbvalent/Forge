@@ -14,7 +14,7 @@ export async function getWorkoutForDate(date: string): Promise<WorkoutData | nul
   const { data } = await supabase
     .from('workouts')
     .select(
-      'id, date, workout_day_id, completed_at, workout_sets(id, exercise_id, set_number, weight_kg, reps, rir)'
+      'id, date, workout_day_id, completed_at, sets:workout_sets(id, exercise_id, set_number, weight_kg, reps, rir)'
     )
     .eq('date', date)
     .maybeSingle()
@@ -68,11 +68,11 @@ export async function getLastSessionSets(
   before: string
 ): Promise<LastSession | null> {
   const supabase = createServiceClient()
-  const { data } = await supabase.rpc('get_last_session_sets', {
+  const { data, error } = await supabase.rpc('get_last_session_sets', {
     p_exercise_id: exerciseId,
     p_before: before,
   })
-  if (!data || data.length === 0) return null
+  if (error || !data || data.length === 0) return null
   return {
     date: data[0].workout_date as string,
     sets: (data as Array<{ weight_kg: number; reps: number; rir: number | null }>).map((r) => ({

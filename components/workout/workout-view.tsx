@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,6 @@ import { Separator } from '@/components/ui/separator'
 import { DayPicker } from './day-picker'
 import { ExerciseCard } from './exercise-card'
 import { ExerciseSearch } from './exercise-search'
-import { getExercisesForDay } from '@/lib/workout/queries'
 import { finishWorkout } from '@/lib/actions/workout'
 import type {
   WorkoutData,
@@ -39,6 +38,11 @@ export function WorkoutView({
   const [exercises, setExercises] = useState<WorkoutDayExercise[]>(initialExercises)
   const [adHocExercises, setAdHocExercises] = useState<WorkoutDayExercise[]>([])
   const [isFinishing, setIsFinishing] = useState(false)
+
+  // Sync exercises when server refreshes them (after day picker selects a day)
+  useEffect(() => {
+    if (initialExercises.length > 0) setExercises(initialExercises)
+  }, [initialExercises])
 
   const isCompleted = !!workout?.completed_at
   const hasPlan = workoutDayId !== null
