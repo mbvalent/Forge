@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -22,7 +23,6 @@ interface WorkoutViewProps {
   workout: WorkoutData | null
   workoutDays: WorkoutDay[]
   exercises: WorkoutDayExercise[]
-  readonly: boolean
 }
 
 export function WorkoutView({
@@ -30,8 +30,9 @@ export function WorkoutView({
   workout,
   workoutDays,
   exercises: initialExercises,
-  readonly,
 }: WorkoutViewProps) {
+  const isPast = date < format(new Date(), 'yyyy-MM-dd')
+  const readonly = isPast || !!workout?.completed_at
   const router = useRouter()
   const [workoutId, setWorkoutId] = useState<string | null>(workout?.id ?? null)
   const [workoutDayId, setWorkoutDayId] = useState<string | null>(workout?.workout_day_id ?? null)

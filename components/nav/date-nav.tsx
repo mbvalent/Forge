@@ -1,23 +1,36 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { addDays, format, subDays, isToday, parseISO, differenceInDays } from 'date-fns'
+import { useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { addDays, format, parseISO, differenceInDays } from 'date-fns'
 import { Button } from '@/components/ui/button'
 
 interface DateNavProps {
   date: string
-  todayStr: string
   basePath: string
 }
 
-export function DateNav({ date, todayStr, basePath }: DateNavProps) {
+export function DateNav({ date, basePath }: DateNavProps) {
   const router = useRouter()
-  const parsed = parseISO(date)
-  const todayParsed = parseISO(todayStr)
+  const searchParams = useSearchParams()
+  const today = format(new Date(), 'yyyy-MM-dd')
 
-  const isCurrentDay = isToday(parsed)
+  const parsed = parseISO(date)
+  const todayParsed = parseISO(today)
+
+  const isCurrentDay = date === today
   const daysFromToday = differenceInDays(todayParsed, parsed)
   const atLowerBound = daysFromToday >= 90
+  const isFuture = daysFromToday < 0
+
+  // When no date param in URL, the server defaulted to UTC today which may differ
+  // from the client's local today — redirect to the correct local date.
+  useEffect(() => {
+    if (!searchParams.get('date')) {
+      router.replace(`${basePath}?date=${today}`)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function navigate(newDate: Date) {
     const str = format(newDate, 'yyyy-MM-dd')
@@ -29,7 +42,7 @@ export function DateNav({ date, todayStr, basePath }: DateNavProps) {
       <Button
         variant="ghost"
         size="icon"
-        onClick={() => navigate(subDays(parsed, 1))}
+        onClick={() => navigate(addDays(parsed, -1))}
         disabled={atLowerBound}
         aria-label="Previous day"
         className="min-h-[44px] min-w-[44px]"
@@ -55,7 +68,7 @@ export function DateNav({ date, todayStr, basePath }: DateNavProps) {
         variant="ghost"
         size="icon"
         onClick={() => navigate(addDays(parsed, 1))}
-        disabled={isCurrentDay}
+        disabled={isCurrentDay || isFuture}
         aria-label="Next day"
         className="min-h-[44px] min-w-[44px]"
       >

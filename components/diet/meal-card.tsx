@@ -2,6 +2,7 @@
 
 import { startTransition, useOptimistic, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -34,10 +35,10 @@ interface MealCardProps {
   mealType: string
   items: MealItemData[]
   date: string
-  readonly?: boolean
 }
 
-export function MealCard({ mealType, items: serverItems, date, readonly = false }: MealCardProps) {
+export function MealCard({ mealType, items: serverItems, date }: MealCardProps) {
+  const readonly = date < format(new Date(), 'yyyy-MM-dd')
   const [optimisticItems, dispatchOptimistic] = useOptimistic<MealItemData[], ItemAction>(
     serverItems,
     (state, action) => {
