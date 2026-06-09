@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   const result = loginSchema.safeParse({ password: formData.get('password') })
 
   if (!result.success || result.data.password !== APP_PASSWORD) {
-    return NextResponse.redirect(new URL('/login?error=1', request.url))
+    return NextResponse.redirect(new URL('/login?error=1', request.url), { status: 303 })
   }
 
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
@@ -26,5 +26,5 @@ export async function POST(request: NextRequest) {
     path: '/',
   })
 
-  return NextResponse.redirect(new URL('/', request.url))
+  return NextResponse.redirect(new URL('/', request.url), { status: 303 })
 }
