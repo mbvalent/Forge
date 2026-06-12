@@ -1,6 +1,7 @@
 import { format } from 'date-fns'
 import { DietView } from '@/components/diet/diet-view'
 import { WorkoutSummaryCard } from '@/components/workout/workout-summary-card'
+import { InsightButtons } from '@/components/today/insight-buttons'
 import { TodayRedirect } from './today-redirect'
 
 interface TodayPageProps {
@@ -23,6 +24,8 @@ export default async function TodayPage({ searchParams }: TodayPageProps) {
       <WorkoutSummaryCard date={date} />
 
       <DietView date={date} />
+
+      <InsightButtons date={date} />
     </div>
   )
 }
