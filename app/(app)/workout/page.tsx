@@ -22,7 +22,7 @@ export default async function WorkoutPage({ searchParams }: WorkoutPageProps) {
   ])
 
   const exercises = workout?.workout_day_id
-    ? await getExercisesForDay(workout.workout_day_id, date)
+    ? await getExercisesForDay(workout.workout_day_id, date, workout.id)
     : []
 
   return (
@@ -32,6 +32,7 @@ export default async function WorkoutPage({ searchParams }: WorkoutPageProps) {
       <DateNav date={date} basePath="/workout" />
 
       <WorkoutView
+        key={date}
         date={date}
         workout={workout}
         workoutDays={workoutDays}

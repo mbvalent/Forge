@@ -1,16 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Textarea } from '@/components/ui/textarea'
 import { DayPicker } from './day-picker'
 import { ExerciseCard } from './exercise-card'
 import { ExerciseSearch } from './exercise-search'
-import { finishWorkout } from '@/lib/actions/workout'
+import { finishWorkout, updateWorkoutNotes } from '@/lib/actions/workout'
 import type {
   WorkoutData,
   WorkoutDay,
@@ -39,10 +40,24 @@ export function WorkoutView({
   const [exercises, setExercises] = useState<WorkoutDayExercise[]>(initialExercises)
   const [adHocExercises, setAdHocExercises] = useState<WorkoutDayExercise[]>([])
   const [isFinishing, setIsFinishing] = useState(false)
+  const [showDayPicker, setShowDayPicker] = useState(false)
+
+  // Workout-level notes
+  const [workoutNotes, setWorkoutNotes] = useState(workout?.notes ?? '')
+  const notesDebounce = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  function handleWorkoutNotesChange(value: string) {
+    setWorkoutNotes(value)
+    if (!workoutId) return
+    clearTimeout(notesDebounce.current)
+    notesDebounce.current = setTimeout(() => {
+      updateWorkoutNotes(workoutId!, value)
+    }, 1000)
+  }
 
   // Sync exercises when server refreshes them (after day picker selects a day)
   useEffect(() => {
-    if (initialExercises.length > 0) setExercises(initialExercises)
+    setExercises(initialExercises)
   }, [initialExercises])
 
   const isCompleted = !!workout?.completed_at
@@ -58,6 +73,8 @@ export function WorkoutView({
   async function handleWorkoutReady(newWorkoutId: string, newWorkoutDayId: string) {
     setWorkoutId(newWorkoutId)
     setWorkoutDayId(newWorkoutDayId)
+    setShowDayPicker(false)
+    setAdHocExercises([])
     router.refresh()
   }
 
@@ -93,19 +110,23 @@ export function WorkoutView({
         default_rep_min: null,
         default_rep_max: null,
         default_rest_sec: exercise.default_rest_sec,
+        notes: null,
       },
       last_session: null,
+      session_note: null,
     }
     setAdHocExercises((prev) => [...prev, adHoc])
   }
 
-  // Show day picker if no workout started yet
-  if (!hasPlan && !readonly) {
+  // Show day picker if no workout started yet, or user is changing day
+  if ((!hasPlan && !readonly) || showDayPicker) {
     return (
       <DayPicker
         date={date}
         workoutDays={workoutDays}
         onWorkoutReady={handleWorkoutReady}
+        existingWorkoutId={showDayPicker && workoutId ? workoutId : undefined}
+        onCancel={showDayPicker ? () => setShowDayPicker(false) : undefined}
       />
     )
   }
@@ -120,14 +141,23 @@ export function WorkoutView({
 
   return (
     <div className="space-y-3">
-      {/* Completion status */}
-      {isCompleted && (
-        <div className="flex items-center justify-center gap-2 py-1">
+      {/* Status row: completion badge + change day */}
+      <div className="flex items-center justify-between py-1 min-h-[28px]">
+        {isCompleted ? (
           <Badge variant="secondary" className="text-xs bg-green-500/20 text-green-400 border-green-500/30">
             Complete
           </Badge>
-        </div>
-      )}
+        ) : <span />}
+        {!readonly && !isCompleted && (
+          <button
+            type="button"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => setShowDayPicker(true)}
+          >
+            Change day
+          </button>
+        )}
+      </div>
 
       {/* Exercise list */}
       {allExercises.map((ex) => (
@@ -146,6 +176,23 @@ export function WorkoutView({
           onSelect={handleAdHocExercise}
           disabled={!workoutId}
         />
+      )}
+
+      {/* Workout notes */}
+      {workoutId && (
+        <>
+          <Separator className="opacity-20" />
+          <div className="space-y-1.5">
+            <p className="text-xs text-muted-foreground">Session notes</p>
+            <Textarea
+              placeholder="Overall session notes — energy, sleep, anything notable…"
+              value={workoutNotes}
+              onChange={(e) => handleWorkoutNotesChange(e.target.value)}
+              disabled={readonly}
+              className="text-sm min-h-[72px] resize-none"
+            />
+          </div>
+        </>
       )}
 
       {/* Finish workout button */}
