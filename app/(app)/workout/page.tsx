@@ -22,7 +22,7 @@ export default async function WorkoutPage({ searchParams }: WorkoutPageProps) {
   ])
 
   const exercises = workout?.workout_day_id
-    ? await getExercisesForDay(workout.workout_day_id, date, workout.id)
+    ? await getExercisesForDay(workout.workout_day_id, date, workout.id, workout.exercise_order)
     : []
 
   return (

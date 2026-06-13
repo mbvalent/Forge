@@ -1,6 +1,6 @@
 'use client'
 
-import { startTransition, useOptimistic, useState } from 'react'
+import { type ReactNode, startTransition, useOptimistic, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
 import { toast } from 'sonner'
@@ -8,12 +8,15 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Separator } from '@/components/ui/separator'
 import { SetRow } from './set-row'
-import { logSet, deleteSet, updateSet } from '@/lib/actions/workout'
+import { ExerciseFormModal } from './exercise-form-modal'
+import { logSet, deleteSet, updateSet, updateExerciseNote, upsertWorkoutExerciseNote } from '@/lib/actions/workout'
 import { persistTimer } from './rest-timer'
 import { useWorkoutTimer } from '@/app/(app)/workout/layout'
+import { displayExerciseName } from '@/lib/workout/exercise-tips'
 import type { WorkoutDayExercise, WorkoutSet, SetSavedPayload } from '@/lib/workout/types'
 import { cn } from '@/lib/utils'
 
@@ -28,6 +31,7 @@ interface ExerciseCardProps {
   workoutId: string | null
   readonly?: boolean
   onSetSaved?: (payload: SetSavedPayload) => void
+  dragHandle?: ReactNode
 }
 
 export function ExerciseCard({
@@ -36,6 +40,7 @@ export function ExerciseCard({
   workoutId,
   readonly = false,
   onSetSaved,
+  dragHandle,
 }: ExerciseCardProps) {
   const router = useRouter()
   const { startTimer } = useWorkoutTimer()
@@ -61,6 +66,30 @@ export function ExerciseCard({
   const [isOpen, setIsOpen] = useState(false)
   const [showAddRow, setShowAddRow] = useState(false)
   const [editingSet, setEditingSet] = useState<WorkoutSet | null>(null)
+  const [showTips, setShowTips] = useState(false)
+
+  // Notes state
+  const [persistentNote, setPersistentNote] = useState(exercise.exercise.notes ?? '')
+  const [sessionNote, setSessionNote] = useState(exercise.session_note ?? '')
+  const persistentNoteDebounce = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const sessionNoteDebounce = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  function handlePersistentNoteChange(value: string) {
+    setPersistentNote(value)
+    clearTimeout(persistentNoteDebounce.current)
+    persistentNoteDebounce.current = setTimeout(() => {
+      updateExerciseNote(exercise.exercise.id, value)
+    }, 1000)
+  }
+
+  function handleSessionNoteChange(value: string) {
+    setSessionNote(value)
+    if (!workoutId) return
+    clearTimeout(sessionNoteDebounce.current)
+    sessionNoteDebounce.current = setTimeout(() => {
+      upsertWorkoutExerciseNote(workoutId!, exercise.exercise.id, value)
+    }, 1000)
+  }
 
   // Add set input state — pre-fill from last set in this workout, or last session
   const lastCurrentSet = optimisticSets[optimisticSets.length - 1]
@@ -143,17 +172,34 @@ export function ExerciseCard({
   const hasLastSession = exercise.last_session && exercise.last_session.sets.length > 0
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card size="sm" className="overflow-hidden">
-        <CardHeader className="border-b border-border/20 pb-3">
-          <CollapsibleTrigger className="flex w-full items-center justify-between text-left min-h-[44px]">
-            <CardTitle className="text-sm">{exercise.exercise.name}</CardTitle>
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {exerciseSets.length}/{exercise.target_sets} sets
-              {exercise.target_rir_label && ` · RIR ${exercise.target_rir_label}`}
-            </span>
-          </CollapsibleTrigger>
-        </CardHeader>
+    <>
+      <ExerciseFormModal
+        exerciseName={exercise.exercise.name}
+        open={showTips}
+        onOpenChange={setShowTips}
+      />
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <Card size="sm" className="overflow-hidden">
+          <CardHeader className="border-b border-border/20 pb-3">
+            <div className="flex w-full items-center gap-2 min-h-[44px]">
+              {dragHandle}
+              <CollapsibleTrigger className="flex flex-1 items-center justify-between text-left gap-2">
+                <CardTitle className="text-sm">{displayExerciseName(exercise.exercise.name)}</CardTitle>
+                <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+                  {exerciseSets.length}/{exercise.target_sets} sets
+                  {exercise.target_rir_label && ` · RIR ${exercise.target_rir_label}`}
+                </span>
+              </CollapsibleTrigger>
+              <button
+                type="button"
+                aria-label="Form tips"
+                className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full border border-muted-foreground/40 text-[10px] font-bold italic text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                onClick={() => setShowTips(true)}
+              >
+                i
+              </button>
+            </div>
+          </CardHeader>
 
         <CollapsibleContent>
           <CardContent className="space-y-0 pt-1 pb-2">
@@ -224,10 +270,34 @@ export function ExerciseCard({
                 )}
               </div>
             )}
+            {/* Notes section */}
+            <div className="mt-2 pt-2 border-t border-border/10 space-y-3">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">Today's note</p>
+                <Textarea
+                  placeholder="How did this feel? Any adjustments…"
+                  value={sessionNote}
+                  onChange={(e) => handleSessionNoteChange(e.target.value)}
+                  disabled={!workoutId || readonly}
+                  className="text-xs min-h-[60px] resize-none bg-muted/20"
+                />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">Reminder <span className="text-muted-foreground/50">(saved permanently)</span></p>
+                <Textarea
+                  placeholder="Cue to remember every session…"
+                  value={persistentNote}
+                  onChange={(e) => handlePersistentNoteChange(e.target.value)}
+                  disabled={readonly}
+                  className="text-xs min-h-[60px] resize-none bg-muted/20"
+                />
+              </div>
+            </div>
           </CardContent>
         </CollapsibleContent>
       </Card>
     </Collapsible>
+    </>
   )
 }
 

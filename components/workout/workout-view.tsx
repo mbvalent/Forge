@@ -4,6 +4,24 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -11,7 +29,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { DayPicker } from './day-picker'
 import { ExerciseCard } from './exercise-card'
 import { ExerciseSearch } from './exercise-search'
-import { finishWorkout, updateWorkoutNotes } from '@/lib/actions/workout'
+import { finishWorkout, updateWorkoutNotes, updateExerciseOrder } from '@/lib/actions/workout'
 import type {
   WorkoutData,
   WorkoutDay,
@@ -62,6 +80,28 @@ export function WorkoutView({
 
   const isCompleted = !!workout?.completed_at
   const hasPlan = workoutDayId !== null
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const activeIdx = exercises.findIndex((e) => e.exercise.id === active.id)
+    const overIdx = exercises.findIndex((e) => e.exercise.id === over.id)
+    if (activeIdx === -1 || overIdx === -1) return
+
+    const newOrder = arrayMove(exercises, activeIdx, overIdx)
+    setExercises(newOrder)
+
+    if (workoutId) {
+      await updateExerciseOrder(workoutId, newOrder.map((e) => e.exercise.id))
+    }
+  }
 
   // Get current sets from workout grouped by exercise
   const setsByExercise = (workout?.sets ?? []).reduce<Record<string, WorkoutSet[]>>((acc, s) => {
@@ -159,8 +199,25 @@ export function WorkoutView({
         )}
       </div>
 
-      {/* Exercise list */}
-      {allExercises.map((ex) => (
+      {/* Exercise list — planned exercises are sortable */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext
+          items={exercises.map((e) => e.exercise.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {exercises.map((ex) => (
+            <SortableExerciseCard
+              key={ex.id}
+              exercise={ex}
+              currentSets={setsByExercise[ex.exercise.id] ?? []}
+              workoutId={workoutId}
+              readonly={readonly || isCompleted}
+              isDraggable={!readonly && !isCompleted && !!workoutId}
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
+      {adHocExercises.map((ex) => (
         <ExerciseCard
           key={ex.id}
           exercise={ex}
@@ -208,6 +265,66 @@ export function WorkoutView({
           </Button>
         </>
       )}
+    </div>
+  )
+}
+
+interface SortableExerciseCardProps {
+  exercise: WorkoutDayExercise
+  currentSets: WorkoutSet[]
+  workoutId: string | null
+  readonly: boolean
+  isDraggable: boolean
+}
+
+function SortableExerciseCard({
+  exercise,
+  currentSets,
+  workoutId,
+  readonly,
+  isDraggable,
+}: SortableExerciseCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: exercise.exercise.id,
+    disabled: !isDraggable,
+  })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    position: 'relative' as const,
+    zIndex: isDragging ? 1 : undefined,
+  }
+
+  const dragHandle = isDraggable ? (
+    <button
+      type="button"
+      className="touch-none shrink-0 flex items-center justify-center w-6 h-8 text-muted-foreground/40 hover:text-muted-foreground/70 cursor-grab active:cursor-grabbing"
+      aria-label="Drag to reorder"
+      {...attributes}
+      {...listeners}
+    >
+      <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor" aria-hidden="true">
+        <circle cx="2" cy="3" r="1.5" />
+        <circle cx="8" cy="3" r="1.5" />
+        <circle cx="2" cy="8" r="1.5" />
+        <circle cx="8" cy="8" r="1.5" />
+        <circle cx="2" cy="13" r="1.5" />
+        <circle cx="8" cy="13" r="1.5" />
+      </svg>
+    </button>
+  ) : undefined
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <ExerciseCard
+        exercise={exercise}
+        currentSets={currentSets}
+        workoutId={workoutId}
+        readonly={readonly}
+        dragHandle={dragHandle}
+      />
     </div>
   )
 }

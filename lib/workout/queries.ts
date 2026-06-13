@@ -14,7 +14,7 @@ export async function getWorkoutForDate(date: string): Promise<WorkoutData | nul
   const { data } = await supabase
     .from('workouts')
     .select(
-      'id, date, workout_day_id, completed_at, sets:workout_sets(id, exercise_id, set_number, weight_kg, reps, rir)'
+      'id, date, workout_day_id, completed_at, notes, exercise_order, sets:workout_sets(id, exercise_id, set_number, weight_kg, reps, rir)'
     )
     .eq('date', date)
     .maybeSingle()
@@ -32,35 +32,65 @@ export async function getWorkoutDays(): Promise<WorkoutDay[]> {
 
 export async function getExercisesForDay(
   workoutDayId: string,
-  today: string
+  today: string,
+  workoutId?: string,
+  savedOrder?: string[] | null
 ): Promise<WorkoutDayExercise[]> {
   const supabase = createServiceClient()
   const { data: dayExercises } = await supabase
     .from('workout_day_exercises')
     .select(
       `id, position, target_sets, target_rir,
-       exercise:exercises(id, name, muscle_group, default_rep_min, default_rep_max, default_rest_sec)`
+       exercise:exercises(id, name, muscle_group, default_rep_min, default_rep_max, default_rest_sec, notes)`
     )
     .eq('workout_day_id', workoutDayId)
     .order('position')
 
   if (!dayExercises) return []
 
-  const lastSessions = await Promise.all(
-    dayExercises.map((de) => {
-      const ex = de.exercise as unknown as Exercise
-      return getLastSessionSets(ex.id, today)
-    })
-  )
+  const [lastSessions, sessionNotes] = await Promise.all([
+    Promise.all(
+      dayExercises.map((de) => {
+        const ex = de.exercise as unknown as Exercise
+        return getLastSessionSets(ex.id, today)
+      })
+    ),
+    workoutId
+      ? supabase
+          .from('workout_exercise_notes')
+          .select('exercise_id, notes')
+          .eq('workout_id', workoutId)
+          .then(({ data }) => {
+            const map: Record<string, string> = {}
+            for (const n of data ?? []) map[n.exercise_id] = n.notes
+            return map
+          })
+      : Promise.resolve({} as Record<string, string>),
+  ])
 
-  return dayExercises.map((de, i) => ({
-    id: de.id,
-    position: de.position,
-    target_sets: de.target_sets,
-    target_rir_label: de.target_rir as string | null,
-    exercise: de.exercise as unknown as Exercise,
-    last_session: lastSessions[i] ?? null,
-  }))
+  const result = dayExercises.map((de, i) => {
+    const ex = de.exercise as unknown as Exercise
+    return {
+      id: de.id,
+      position: de.position,
+      target_sets: de.target_sets,
+      target_rir_label: de.target_rir as string | null,
+      exercise: ex,
+      last_session: lastSessions[i] ?? null,
+      session_note: sessionNotes[ex.id] ?? null,
+    }
+  })
+
+  if (savedOrder && savedOrder.length > 0) {
+    const orderMap = new Map(savedOrder.map((id, i) => [id, i]))
+    return result.sort((a, b) => {
+      const ai = orderMap.get(a.exercise.id) ?? Infinity
+      const bi = orderMap.get(b.exercise.id) ?? Infinity
+      return ai !== bi ? ai - bi : a.position - b.position
+    })
+  }
+
+  return result
 }
 
 export async function getLastSessionSets(
@@ -134,4 +164,5 @@ interface Exercise {
   default_rep_min: number | null
   default_rep_max: number | null
   default_rest_sec: number
+  notes: string | null
 }

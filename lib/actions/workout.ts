@@ -9,6 +9,11 @@ import {
   deleteSetSchema,
   finishWorkoutSchema,
   searchExercisesSchema,
+  changeWorkoutDaySchema,
+  updateWorkoutNotesSchema,
+  updateExerciseNoteSchema,
+  upsertWorkoutExerciseNoteSchema,
+  updateExerciseOrderSchema,
   type ActionResult,
 } from '@/lib/workout/types'
 
@@ -147,4 +152,115 @@ export async function searchExercises(query: string) {
 
   if (error) return { exercises: [] }
   return { exercises: data ?? [] }
+}
+
+export async function changeWorkoutDay(
+  workoutId: string,
+  newDayId: string
+): Promise<ActionResult> {
+  const parsed = changeWorkoutDaySchema.safeParse({ workoutId, newDayId })
+  if (!parsed.success) return { success: false, error: 'Invalid input' }
+
+  const supabase = createServiceClient()
+
+  await Promise.all([
+    supabase.from('workout_sets').delete().eq('workout_id', parsed.data.workoutId),
+    supabase.from('workout_exercise_notes').delete().eq('workout_id', parsed.data.workoutId),
+  ])
+
+  const { error } = await supabase
+    .from('workouts')
+    .update({ workout_day_id: parsed.data.newDayId })
+    .eq('id', parsed.data.workoutId)
+
+  if (error) return { success: false, error: 'Failed to change workout day' }
+
+  revalidatePath('/workout')
+  return { success: true }
+}
+
+export async function updateWorkoutNotes(
+  workoutId: string,
+  notes: string
+): Promise<ActionResult> {
+  const parsed = updateWorkoutNotesSchema.safeParse({ workoutId, notes })
+  if (!parsed.success) return { success: false, error: 'Invalid input' }
+
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from('workouts')
+    .update({ notes: parsed.data.notes || null })
+    .eq('id', parsed.data.workoutId)
+
+  if (error) return { success: false, error: 'Failed to save notes' }
+  return { success: true }
+}
+
+export async function updateExerciseNote(
+  exerciseId: string,
+  notes: string
+): Promise<ActionResult> {
+  const parsed = updateExerciseNoteSchema.safeParse({ exerciseId, notes })
+  if (!parsed.success) return { success: false, error: 'Invalid input' }
+
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from('exercises')
+    .update({ notes: parsed.data.notes || null })
+    .eq('id', parsed.data.exerciseId)
+
+  if (error) return { success: false, error: 'Failed to save note' }
+  return { success: true }
+}
+
+export async function updateExerciseOrder(
+  workoutId: string,
+  exerciseOrder: string[]
+): Promise<ActionResult> {
+  const parsed = updateExerciseOrderSchema.safeParse({ workoutId, exerciseOrder })
+  if (!parsed.success) return { success: false, error: 'Invalid input' }
+
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from('workouts')
+    .update({ exercise_order: parsed.data.exerciseOrder })
+    .eq('id', parsed.data.workoutId)
+
+  if (error) return { success: false, error: 'Failed to save exercise order' }
+  return { success: true }
+}
+
+export async function upsertWorkoutExerciseNote(
+  workoutId: string,
+  exerciseId: string,
+  notes: string
+): Promise<ActionResult> {
+  const parsed = upsertWorkoutExerciseNoteSchema.safeParse({ workoutId, exerciseId, notes })
+  if (!parsed.success) return { success: false, error: 'Invalid input' }
+
+  const supabase = createServiceClient()
+
+  if (!parsed.data.notes) {
+    await supabase
+      .from('workout_exercise_notes')
+      .delete()
+      .eq('workout_id', parsed.data.workoutId)
+      .eq('exercise_id', parsed.data.exerciseId)
+    return { success: true }
+  }
+
+  const { error } = await supabase
+    .from('workout_exercise_notes')
+    .upsert(
+      {
+        workout_id: parsed.data.workoutId,
+        exercise_id: parsed.data.exerciseId,
+        notes: parsed.data.notes,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'workout_id,exercise_id' }
+    )
+
+  if (error) return { success: false, error: 'Failed to save note' }
+  return { success: true }
 }

@@ -28,6 +28,28 @@ export const finishWorkoutSchema = z.object({ workoutId: z.string().uuid() })
 export const searchExercisesSchema = z.object({
   query: z.string().trim().min(1).max(100),
 })
+export const changeWorkoutDaySchema = z.object({
+  workoutId: z.string().uuid(),
+  newDayId: z.string().uuid(),
+})
+export const updateWorkoutNotesSchema = z.object({
+  workoutId: z.string().uuid(),
+  notes: z.string().max(2000),
+})
+export const updateExerciseNoteSchema = z.object({
+  exerciseId: z.string().uuid(),
+  notes: z.string().max(2000),
+})
+export const upsertWorkoutExerciseNoteSchema = z.object({
+  workoutId: z.string().uuid(),
+  exerciseId: z.string().uuid(),
+  notes: z.string().max(2000),
+})
+
+export const updateExerciseOrderSchema = z.object({
+  workoutId: z.string().uuid(),
+  exerciseOrder: z.array(z.string().uuid()),
+})
 
 // --- TypeScript interfaces ---
 
@@ -47,6 +69,7 @@ export interface Exercise {
   default_rep_min: number | null
   default_rep_max: number | null
   default_rest_sec: number
+  notes: string | null
 }
 
 export interface WorkoutSet {
@@ -70,6 +93,7 @@ export interface WorkoutDayExercise {
   target_rir_label: string | null
   exercise: Exercise
   last_session: LastSession | null
+  session_note: string | null
 }
 
 export interface WorkoutDay {
@@ -83,6 +107,8 @@ export interface WorkoutData {
   date: string
   workout_day_id: string | null
   completed_at: string | null
+  notes: string | null
+  exercise_order: string[] | null
   sets: WorkoutSet[]
 }
 
