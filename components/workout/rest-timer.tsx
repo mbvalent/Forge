@@ -24,6 +24,13 @@ export function RestTimer({ endTime, onDismiss }: RestTimerProps) {
   const [remaining, setRemaining] = useState(() => Math.max(0, endTime - Date.now()))
   const cancelRef = useRef(false)
   const rafRef = useRef<number>(0)
+  // Tracks the effective end time — adjustable independently of the prop
+  const endTimeRef = useRef(endTime)
+
+  // Sync ref when a new timer starts (prop changes)
+  useEffect(() => {
+    endTimeRef.current = endTime
+  }, [endTime])
 
   function dismiss() {
     localStorage.removeItem(STORAGE_KEY(getTodayStr()))
@@ -31,9 +38,9 @@ export function RestTimer({ endTime, onDismiss }: RestTimerProps) {
   }
 
   function adjustTime(deltaMs: number) {
-    // Caller should update endTime externally; for now we adjust display only
-    const newEnd = endTime + deltaMs
-    setRemaining(Math.max(0, newEnd - Date.now()))
+    endTimeRef.current = endTimeRef.current + deltaMs
+    localStorage.setItem(STORAGE_KEY(getTodayStr()), JSON.stringify({ endTime: endTimeRef.current }))
+    setRemaining(Math.max(0, endTimeRef.current - Date.now()))
   }
 
   useEffect(() => {
@@ -41,7 +48,7 @@ export function RestTimer({ endTime, onDismiss }: RestTimerProps) {
 
     const tick = () => {
       if (cancelRef.current) return
-      const left = endTime - Date.now()
+      const left = endTimeRef.current - Date.now()
       if (left <= 0) {
         setRemaining(0)
         localStorage.removeItem(STORAGE_KEY(getTodayStr()))
@@ -68,7 +75,7 @@ export function RestTimer({ endTime, onDismiss }: RestTimerProps) {
         cancelRef.current = false
         const tick = () => {
           if (cancelRef.current) return
-          const left = endTime - Date.now()
+          const left = endTimeRef.current - Date.now()
           if (left <= 0) {
             setRemaining(0)
             localStorage.removeItem(STORAGE_KEY(getTodayStr()))

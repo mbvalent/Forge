@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Oxanium, Noto_Serif } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
+import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
 const oxanium = Oxanium({
@@ -18,7 +19,18 @@ const notoSerif = Noto_Serif({
 export const metadata: Metadata = {
   title: 'Forge',
   description: 'Personal fitness tracker',
-  icons: { apple: '/apple-touch-icon.png' },
+  manifest: '/site.webmanifest',
+  icons: {
+    icon: [
+      { url: '/favicon-96x96.png', type: 'image/png', sizes: '96x96' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180' }],
+  },
+  other: {
+    'apple-mobile-web-app-title': 'Forge',
+  },
 }
 
 export default function RootLayout({
@@ -27,15 +39,17 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="theme-color" content="#09090b" />
       </head>
       <body
         className={`${oxanium.variable} ${notoSerif.variable} font-sans bg-background text-foreground antialiased`}
       >
-        {children}
-        <Toaster />
+        <ThemeProvider>
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   )

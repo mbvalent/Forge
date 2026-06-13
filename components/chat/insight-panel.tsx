@@ -65,7 +65,7 @@ export function InsightPanel({ date }: InsightPanelProps) {
           <SheetHeader>
             <SheetTitle className="font-heading">{title}</SheetTitle>
           </SheetHeader>
-          <div className="mt-4 text-sm">
+          <div className="mt-4 text-[16px] px-5 pb-10 sm:px-7 sm:pb-14">
             {state.status === 'loading' && (
               <p className="animate-pulse text-muted-foreground">Generating review…</p>
             )}

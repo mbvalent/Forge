@@ -1,8 +1,9 @@
 'use client'
 
-import { startTransition, useState, useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { createOrResumeWorkout } from '@/lib/actions/workout'
+import { Button } from '@/components/ui/button'
+import { createOrResumeWorkout, changeWorkoutDay } from '@/lib/actions/workout'
 import type { WorkoutDay } from '@/lib/workout/types'
 import { toast } from 'sonner'
 
@@ -19,9 +20,12 @@ interface DayPickerProps {
   date: string
   workoutDays: WorkoutDay[]
   onWorkoutReady: (workoutId: string, workoutDayId: string) => void
+  /** When provided, picker is in "change day" mode — deletes existing sets */
+  existingWorkoutId?: string
+  onCancel?: () => void
 }
 
-export function DayPicker({ date, workoutDays, onWorkoutReady }: DayPickerProps) {
+export function DayPicker({ date, workoutDays, onWorkoutReady, existingWorkoutId, onCancel }: DayPickerProps) {
   const [isPending, startPendingTransition] = useTransition()
   const [selected, setSelected] = useState<string | null>(null)
 
@@ -31,19 +35,31 @@ export function DayPicker({ date, workoutDays, onWorkoutReady }: DayPickerProps)
   async function handleSelect(dayId: string) {
     setSelected(dayId)
     startPendingTransition(async () => {
-      const result = await createOrResumeWorkout(date, dayId)
-      if (result.success && result.data) {
-        onWorkoutReady(result.data.workoutId, dayId)
+      if (existingWorkoutId) {
+        const result = await changeWorkoutDay(existingWorkoutId, dayId)
+        if (result.success) {
+          onWorkoutReady(existingWorkoutId, dayId)
+        } else {
+          toast.error('Failed to change day — try again')
+          setSelected(null)
+        }
       } else {
-        toast.error('Failed to start workout — try again')
-        setSelected(null)
+        const result = await createOrResumeWorkout(date, dayId)
+        if (result.success && result.data) {
+          onWorkoutReady(result.data.workoutId, dayId)
+        } else {
+          toast.error('Failed to start workout — try again')
+          setSelected(null)
+        }
       }
     })
   }
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground text-center">Choose today's workout</p>
+      <p className="text-sm text-muted-foreground text-center">
+        {existingWorkoutId ? 'Select a different day (existing sets will be cleared)' : 'Choose today\'s workout'}
+      </p>
       <ToggleGroup
         value={selected ? [selected] : []}
         onValueChange={(vals) => { const val = vals[vals.length - 1]; if (val) handleSelect(val) }}
@@ -67,6 +83,11 @@ export function DayPicker({ date, workoutDays, onWorkoutReady }: DayPickerProps)
           )
         })}
       </ToggleGroup>
+      {onCancel && (
+        <Button variant="ghost" className="w-full text-muted-foreground" onClick={onCancel} disabled={isPending}>
+          Cancel
+        </Button>
+      )}
     </div>
   )
 }

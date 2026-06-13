@@ -15,6 +15,7 @@ import {
 import { cn } from '@/lib/utils'
 import { logout } from '@/lib/actions/logout'
 import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/nav/theme-toggle'
 
 const tabs = [
   { href: '/', label: 'Today', icon: Home01Icon },
@@ -61,7 +62,8 @@ export function Sidebar({ className }: { className?: string }) {
           )
         })}
       </nav>
-      <div className="mt-auto px-2 pb-4">
+      <div className="mt-auto px-2 pb-4 flex flex-col gap-1">
+        <ThemeToggle showLabel className="w-full text-muted-foreground/60 hover:text-accent-foreground" />
         <form action={logout}>
           <Button
             type="submit"
