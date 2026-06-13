@@ -4,6 +4,7 @@ import { fetchUserContext } from '@/lib/ai/context'
 import { buildSystemPrompt } from '@/lib/ai/prompts'
 import { createServiceClient } from '@/lib/supabase'
 import type { UIMessage, TextUIPart } from 'ai'
+import type { PromptMeta } from '@/lib/ai/prompts'
 
 function getTextContent(message: UIMessage): string {
   return message.parts
@@ -16,9 +17,13 @@ export async function POST(req: Request) {
   const body = await req.json() as {
     id: string
     messages: UIMessage[]
+    clientDate?: string
+    timezone?: string
+    location?: string
   }
 
-  const { id: threadId, messages } = body
+  const { id: threadId, messages, clientDate, timezone, location } = body
+  const meta: PromptMeta = { clientDate, timezone, location }
 
   if (!threadId) {
     return new Response('Thread ID is required', { status: 400 })
@@ -26,7 +31,7 @@ export async function POST(req: Request) {
 
   const modelMessages = await convertToModelMessages(messages)
   const userContext = await fetchUserContext(90)
-  const systemPrompt = buildSystemPrompt(userContext)
+  const systemPrompt = buildSystemPrompt(userContext, meta)
 
   const result = streamText({
     model: google('gemini-2.5-flash'),

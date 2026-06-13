@@ -6,6 +6,7 @@ import { createServiceClient } from '@/lib/supabase'
 import { fetchUserContext } from '@/lib/ai/context'
 import { buildSystemPrompt, dailyReviewPrompt, weeklyReviewPrompt } from '@/lib/ai/prompts'
 import type { Thread, ThreadMessage, InsightType } from '@/lib/ai/types'
+import type { PromptMeta } from '@/lib/ai/prompts'
 
 export async function createThread(): Promise<{ id: string; title: string }> {
   const supabase = createServiceClient()
@@ -39,9 +40,16 @@ export async function getMessages(threadId: string): Promise<ThreadMessage[]> {
   return (data as ThreadMessage[]) ?? []
 }
 
-export async function generateInsight(type: InsightType): Promise<{ content: string }> {
+export async function generateInsight(
+  type: InsightType,
+  meta: PromptMeta = {}
+): Promise<{ content: string }> {
   const supabase = createServiceClient()
-  const today = new Date().toISOString().split('T')[0]
+
+  // Use the client's local date as cache key so UTC midnight doesn't trigger a stale cache
+  const today = meta.clientDate
+    ? new Date(meta.clientDate).toLocaleDateString('en-CA', { timeZone: meta.timezone ?? 'UTC' })
+    : new Date().toISOString().split('T')[0]!
 
   const { data: cached } = await supabase
     .from('ai_insights')
@@ -53,7 +61,7 @@ export async function generateInsight(type: InsightType): Promise<{ content: str
   if (cached) return { content: cached.content }
 
   const userContext = await fetchUserContext(90)
-  const systemPrompt = buildSystemPrompt(userContext)
+  const systemPrompt = buildSystemPrompt(userContext, meta)
   const prompt = type === 'daily' ? dailyReviewPrompt() : weeklyReviewPrompt()
 
   const timeoutPromise = new Promise<never>((_, reject) =>

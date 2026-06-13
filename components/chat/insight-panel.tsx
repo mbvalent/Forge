@@ -22,7 +22,10 @@ export function InsightPanel({ date }: InsightPanelProps) {
     setState({ status: 'loading', type })
     setOpen(true)
     try {
-      const { content } = await generateInsight(type)
+      const { content } = await generateInsight(type, {
+        clientDate: new Date().toISOString(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      })
       setState({ status: 'done', type, content })
     } catch {
       setState({ status: 'idle' })

@@ -11,8 +11,30 @@ const DIET_PLAN = readFileSync(
   'utf-8'
 )
 
-export function buildSystemPrompt(userContext: string): string {
+export interface PromptMeta {
+  clientDate?: string   // ISO string from client's clock
+  timezone?: string     // IANA timezone e.g. "Asia/Karachi"
+  location?: string     // human-readable city/country from geolocation
+}
+
+function formatCurrentContext(meta: PromptMeta): string {
+  const tz = meta.timezone ?? 'UTC'
+  const date = meta.clientDate ? new Date(meta.clientDate) : new Date()
+
+  const weekday = date.toLocaleDateString('en-US', { weekday: 'long', timeZone: tz })
+  const dateStr = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: tz })
+  const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: tz })
+
+  const lines = [`Today is ${weekday}, ${dateStr} at ${timeStr} (${tz}).`]
+  if (meta.location) lines.push(`Owner's location: ${meta.location}.`)
+  return lines.join('\n')
+}
+
+export function buildSystemPrompt(userContext: string, meta: PromptMeta = {}): string {
   return `You are Forge — a personal AI fitness coach with full access to the owner's training and nutrition data.
+
+## Current Context
+${formatCurrentContext(meta)}
 
 ## Your style
 - Speak plainly and directly. No filler phrases.

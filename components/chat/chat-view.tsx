@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
@@ -40,12 +40,34 @@ interface ThreadChatProps {
 
 function ThreadChat({ threadId, initialMessages }: ThreadChatProps) {
   const [input, setInput] = useState('')
+  const locationRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`
+        )
+        const data = await res.json()
+        const city = data.address?.city ?? data.address?.town ?? data.address?.village
+        const country = data.address?.country
+        locationRef.current = [city, country].filter(Boolean).join(', ') || null
+      } catch {
+        // location stays null; AI will just lack location context
+      }
+    }, () => {})
+  }, [])
 
   const { messages, sendMessage, status } = useChat({
     id: threadId,
     messages: initialMessages,
     transport: new DefaultChatTransport({
       api: '/api/chat',
+      body: () => ({
+        clientDate: new Date().toISOString(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        ...(locationRef.current ? { location: locationRef.current } : {}),
+      }),
     }),
   })
 
