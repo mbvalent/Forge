@@ -2,6 +2,9 @@
 
 import { ProgressTrack, ProgressIndicator } from '@/components/ui/progress'
 import { Progress } from '@base-ui/react/progress'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { InformationCircleIcon } from '@hugeicons/core-free-icons'
 import { cn } from '@/lib/utils'
 import type { MacroTargets } from '@/lib/diet/targets'
 import type { MacroTotals } from '@/lib/diet/types'
@@ -47,9 +50,21 @@ export function MacroTotalsBar({ totals, targets, isTrainingDay }: MacroTotalsBa
     <div className="space-y-3 rounded-2xl bg-card/60 p-4 ring-1 ring-border">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-foreground">Today&apos;s Nutrition</p>
-        <span className="text-xs text-muted-foreground">
-          {isTrainingDay ? 'Training day' : 'Rest day'}
-        </span>
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-muted-foreground">
+            {isTrainingDay ? 'Training day' : 'Rest day'}
+          </span>
+          {!isTrainingDay && (
+            <Popover>
+              <PopoverTrigger className="text-muted-foreground/60 hover:text-muted-foreground transition-colors">
+                <HugeiconsIcon icon={InformationCircleIcon} strokeWidth={1.5} className="size-3.5" />
+              </PopoverTrigger>
+              <PopoverContent side="left" align="center" className="w-56 text-xs text-muted-foreground">
+                No sets logged today. Log a workout to switch to training day targets (1950 kcal).
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
       </div>
       <MacroRow label="Calories" actual={totals.calories} target={targets.calories} unit=" kcal" />
       <MacroRow label="Protein" actual={totals.protein} target={targets.protein} unit="g" />

@@ -30,7 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <>
-      <BackgroundCarousel images={images} />
+      {/* <BackgroundCarousel images={images} /> */}
       <div className="flex h-dvh relative z-10">
         <Sidebar className="hidden md:flex" />
         <main className="flex-1 overflow-y-auto pb-16 md:pb-0">{children}</main>

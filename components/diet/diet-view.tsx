@@ -1,6 +1,8 @@
 import { getMacrosForDate } from '@/lib/diet/macros'
+import { getSupplementsForDate } from '@/lib/actions/diet'
 import { MacroTotalsBar } from './macro-totals-bar'
 import { MealCard } from './meal-card'
+import { SupplementTracker } from './supplement-tracker'
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'snack', 'dinner', 'prebed'] as const
 
@@ -9,13 +11,17 @@ interface DietViewProps {
 }
 
 export async function DietView({ date }: DietViewProps) {
-  const { meals, totals, targets, isTrainingDay } = await getMacrosForDate(date)
+  const [{ meals, totals, targets, isTrainingDay }, supplementsTaken] = await Promise.all([
+    getMacrosForDate(date),
+    getSupplementsForDate(date),
+  ])
 
   const mealsByType = Object.fromEntries(meals.map((m) => [m.meal_type, m]))
 
   return (
     <div className="space-y-3">
       <MacroTotalsBar totals={totals} targets={targets} isTrainingDay={isTrainingDay} />
+      <SupplementTracker date={date} taken={supplementsTaken} />
 
       {MEAL_TYPES.map((mealType) => {
         const meal = mealsByType[mealType]

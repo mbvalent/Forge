@@ -1,0 +1,7 @@
+# .claudeignore
+node_modules/
+dist/
+.git/
+*.lock
+coverage/
+*.log

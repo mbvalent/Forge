@@ -118,6 +118,36 @@ export async function createFood(
   return { success: true, food: data }
 }
 
+export async function toggleSupplement(date: string, supplement: string) {
+  const supabase = createServiceClient()
+
+  const { data: existing } = await supabase
+    .from('supplement_logs')
+    .select('id')
+    .eq('date', date)
+    .eq('supplement', supplement)
+    .maybeSingle()
+
+  if (existing) {
+    await supabase.from('supplement_logs').delete().eq('id', existing.id)
+  } else {
+    await supabase.from('supplement_logs').insert({ date, supplement })
+  }
+
+  revalidatePath('/')
+  revalidatePath('/diet')
+  return { success: true }
+}
+
+export async function getSupplementsForDate(date: string): Promise<string[]> {
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('supplement_logs')
+    .select('supplement')
+    .eq('date', date)
+  return (data ?? []).map((r) => r.supplement)
+}
+
 export async function searchFoods(query: string) {
   if (!query.trim()) return { foods: [] }
 
