@@ -31,7 +31,7 @@ export function Sidebar({ className }: { className?: string }) {
   return (
     <aside
       className={cn(
-        'flex w-56 shrink-0 flex-col border-r border-border/30 bg-background/50 backdrop-blur-md pt-6',
+        'flex w-[236px] shrink-0 flex-col border-r border-foreground/8 bg-background/86 backdrop-blur-md pt-6',
         className,
       )}
     >
@@ -46,16 +46,16 @@ export function Sidebar({ className }: { className?: string }) {
               key={href}
               href={href}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors min-h-[44px]',
+                'flex items-center gap-3 rounded-[13px] px-3.5 text-sm font-medium transition-colors min-h-[46px]',
                 active
-                  ? 'bg-primary/10 text-primary'
+                  ? 'bg-primary/15 text-primary ring-1 ring-primary/25'
                   : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
               )}
             >
               <HugeiconsIcon
                 icon={icon}
-                size={20}
-                strokeWidth={active ? 2 : 1.5}
+                size={21}
+                strokeWidth={active ? 2 : 1.6}
               />
               {label}
             </Link>
